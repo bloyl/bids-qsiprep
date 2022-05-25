@@ -1,13 +1,13 @@
 {
   "name": "bids-qsiprep",
   "label": "BIDS qsiprep",
-  "description": "BIDS qsiprep 0.0.0_0.12.2 \n qsiprep configures pipelines for processing diffusion-weighted MRI (dMRI) data. The main features of this software are\n\nA BIDS-app approach to preprocessing nearly all kinds of modern diffusion MRI data.\n\nAutomatically generated preprocessing pipelines that correctly group, distortion correct, motion correct, denoise, coregister and resample your scans, producing visual reports and QC metrics.\n\nA system for running state-of-the-art reconstruction pipelines that include algorithms from Dipy, MRTrix, DSI Studio and others.\n\nA novel motion correction algorithm that works on DSI and random q-space sampling schemes",
-  "version": "0.0.0_0.12.2",
+  "description": "BIDS qsiprep 0.1.0_0.15.4 \n qsiprep configures pipelines for processing diffusion-weighted MRI (dMRI) data. The main features of this software are\n\nA BIDS-app approach to preprocessing nearly all kinds of modern diffusion MRI data.\n\nAutomatically generated preprocessing pipelines that correctly group, distortion correct, motion correct, denoise, coregister and resample your scans, producing visual reports and QC metrics.\n\nA system for running state-of-the-art reconstruction pipelines that include algorithms from Dipy, MRTrix, DSI Studio and others.\n\nA novel motion correction algorithm that works on DSI and random q-space sampling schemes",
+  "version": "0.1.0_0.15.4-dev",
   "custom": {
-    "docker-image": "flywheel/bids-qsiprep:0.0.0_0.12.2",
+    "docker-image": "flywheel/bids-qsiprep:0.1.0_0.15.4-dev",
     "gear-builder": {
       "category": "analysis",
-      "image": "flywheel/bids-qsiprep:0.0.0_0.12.2"
+      "image": "flywheel/bids-qsiprep:0.1.0_0.15.4-dev"
     },
     "flywheel": {
       "suite": "BIDS Apps"
@@ -60,8 +60,8 @@
       "optional": true
     }
   },
-  
-  
+
+
   "config": {
     "bids_app_args": {
       "description": "[arg1 [arg2 ...]]",
@@ -307,10 +307,10 @@
       "description": "only generate reports, don’t run workflows. This will only rerun report aggregation, not reportlet generation for specific nodes.",
       "type": "boolean",
       "optional": true
-    },    
-    
-    
-    
+    },
+
+
+
     "participant_label": {
       "description": "[PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]]",
       "optional": true,
