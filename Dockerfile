@@ -6,9 +6,7 @@ LABEL maintainer="support@flywheel.io"
 
 # Hopefully You won't need to change anything below this.
 
-# Save docker environ here to keep it separate from the Flywheel gear environment
-RUN python -c 'import os, json; f = open("/tmp/gear_environ.json", "w"); json.dump(dict(os.environ), f)'
-
+# this npm install throws all types or deprecation/not supported errors?
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC && \
     apt-get update && \
     curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
@@ -32,16 +30,20 @@ ENV PATH="/usr/local/miniconda/bin:$PATH" \
 # [GCC 7.3.0] :: Anaconda, Inc. on linux
 COPY requirements.txt /tmp
 RUN pip install -r /tmp/requirements.txt && \
-    rm -rf /root/.cache/pip
+    rm -rf /root/.cache/pip && \
+    rm -rf /tmp/requirements.txt
 
 ENV FLYWHEEL /flywheel/v0
 WORKDIR ${FLYWHEEL}
+
+# Save docker environ here to keep it separate from the Flywheel gear environment
+RUN python -c 'import os, json; f = open("/flywheel/v0/gear_environ.json", "w"); json.dump(dict(os.environ), f)'
 
 ENV PYTHONUNBUFFERED 1
 
 COPY manifest.json ${FLYWHEEL}/manifest.json
 COPY utils ${FLYWHEEL}/utils
 COPY run.py ${FLYWHEEL}/run.py
+RUN chmod -R a+rx ${FLYWHEEL}
 
-RUN chmod a+x ${FLYWHEEL}/run.py
 ENTRYPOINT ["/flywheel/v0/run.py"]

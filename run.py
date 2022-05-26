@@ -14,6 +14,7 @@ from flywheel_gear_toolkit.interfaces.command_line import (
     exec_command,
 )
 from flywheel_gear_toolkit.utils.zip_tools import zip_output
+from flywheel_gear_toolkit.utils.zip_tools import (unzip_archive, zip_info)
 
 from utils.bids.download_run_level import download_bids_for_runlevel
 from utils.bids.run_level import get_analysis_run_level_and_hierarchy
@@ -233,10 +234,7 @@ def main(gtk_context):
     #config["mem_mb"] = set_mem_gb(config.get("mem_gb"))
     config['work-dir'] = work_dir
 
-    # # path to a bids_database_dir ? not sure what this is
-    # config['bids_database_dir'] = work_dir / 'bids_db_dir'
-
-    environ = get_and_log_environment()
+    environ = get_and_log_environment('/flywheel/v0/gear_environ.json')
 
     # editme: if the command needs a Freesurfer license keep this
     install_freesurfer_license(
@@ -258,11 +256,22 @@ def main(gtk_context):
         config['eddy-config'] = eddy_path
 
     ### XXX --freesurfer-input
-    ### XXX deal with core_count and open threads etc.
-    config['freesurfer-input'] = work_dir / 'fs_subjects' / 'CHP-HC-028'
-    if config.get('do_reconall', False):
-        config['do_reconall'] = False
-        log.warn('Setting do_reconall to \'False\' since freesurfer input is supplied')
+    fs_inp_path = gtk_context.get_input_path('freesurfer_recon_all_zip')
+
+    if fs_inp_path:
+        fs_subject = zip_info(fs_inp_path)[0].split('/')[0]
+        subjects_dir = work_dir / 'fs_subjects'
+        subjects_dir.mkdir(exist_ok=True)
+        if not (subjects_dir / fs_subject).exists():
+            log.info(f'Unzipping {fs_subject} to {subjects_dir}')
+            unzip_archive(fs_inp_path, subjects_dir)
+
+        config['freesurfer-input'] = subjects_dir / fs_subject
+
+        # unset do_Reconall if set
+        if config.get('do_reconall', False):
+            config['do_reconall'] = False
+            log.warn('Setting do_reconall to \'False\' since freesurfer input is supplied')
 
     command = generate_command(
         config, work_dir, output_analysis_id_dir, errors, warnings

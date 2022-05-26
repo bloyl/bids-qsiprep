@@ -20,9 +20,12 @@ def set_n_cpus(n_cpus):
     Returns:
         n_cpus (int) which will become part of the command line command
     """
-
-    os_cpu_count = os.cpu_count()
-    log.info("os.cpu_count() = %d", os_cpu_count)
+    # Only use available cpus not all of them
+    # https://docs.python.org/3/library/os.html
+    os_cpu_count = len(os.sched_getaffinity(0))
+    log.info("len(os.sched_getaffinity(0)) = %d", os_cpu_count)
+    # os_cpu_count = os.cpu_count()
+    # log.info("os.cpu_count() = %d", os_cpu_count)
     if n_cpus:
         if n_cpus > os_cpu_count:
             log.warning("n_cpus > number available, using max %d", os_cpu_count)

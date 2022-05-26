@@ -3,10 +3,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-ENVIRONMENT_FILE = "/tmp/gear_environ.json"
-
-
-def get_and_log_environment():
+def get_and_log_environment(env_file):
     """Grab and log environment for to use when executing command line.
 
     The shell environment is saved into a file at an appropriate place in the Dockerfile.
@@ -16,7 +13,7 @@ def get_and_log_environment():
 
     Returns: (nothing)
     """
-    with open(ENVIRONMENT_FILE, "r") as f:
+    with open(env_file, "r") as f:
         environ = json.load(f)
 
         # Add environment to log if debugging

@@ -58,6 +58,16 @@
             "description": "path to a json file with settings for the call to eddy. If no json is specified, a default one will be used. The current default json can be found here: https://github.com/PennBBL/qsiprep/blob/master/qsiprep/data/eddy_params.json",
             "base": "file",
             "optional": true
+        },
+        "freesurfer_recon_all_zip": {
+            "description": "freesurfer-recon-all zip archive (e.g., freesurfer-recon-all_<subject_code>*.zip)",
+            "optional": true,
+            "base": "file",
+            "type": {
+                "enum": [
+                    "archive"
+                ]
+            }
         }
     },
     "config": {
