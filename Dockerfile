@@ -9,12 +9,14 @@ LABEL maintainer="support@flywheel.io"
 # Save docker environ here to keep it separate from the Flywheel gear environment
 RUN python -c 'import os, json; f = open("/tmp/gear_environ.json", "w"); json.dump(dict(os.environ), f)'
 
-RUN apt-get update && \
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC && \
+    apt-get update && \
     curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
     apt-get install -y \
-    zip \
+    build-essential \
     nodejs \
-    tree && \
+    tree \
+    zip && \
     rm -rf /var/lib/apt/lists/* && \
     npm install -g bids-validator@1.5.7
 

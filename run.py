@@ -6,6 +6,7 @@ import logging
 import shutil
 import sys
 from pathlib import Path
+import os
 
 import flywheel_gear_toolkit
 from flywheel_gear_toolkit.interfaces.command_line import (
@@ -26,6 +27,7 @@ from utils.results.zip_intermediate import (
     zip_all_intermediate_output,
     zip_intermediate_selected,
 )
+from utils.singularity import run_in_tmp_dir
 
 log = logging.getLogger(__name__)
 
@@ -46,9 +48,6 @@ DOWNLOAD_MODALITIES = []  # empty list is no limit
 
 # Whether or not to include src data (e.g. dicoms) when downloading BIDS
 DOWNLOAD_SOURCE = False
-
-# Constants that do not need to be changed
-FREESURFER_LICENSE = "/opt/freesurfer/license.txt"
 
 
 def generate_command(config, work_dir, output_analysis_id_dir, errors, warnings):
@@ -190,6 +189,14 @@ def generate_command(config, work_dir, output_analysis_id_dir, errors, warnings)
 
 def main(gtk_context):
 
+    # run-time configuration options from the gear's context.json
+    config = gtk_context.config
+
+    # Setup basic logging and log the configuration for this job
+    if config["gear-log-level"] == "INFO":
+        gtk_context.init_logging("info")
+    else:
+        gtk_context.init_logging("debug")
     gtk_context.log_config()
 
     # Errors and warnings will be always logged when they are detected.
@@ -198,13 +205,13 @@ def main(gtk_context):
     errors = []
     warnings = []
 
-    output_dir = gtk_context.output_dir
-    work_dir = gtk_context.work_dir
+    # use redirected directories
+    # output_dir = gtk_context.output_dir
+    # work_dir = gtk_context.work_dir
+    output_dir = FLYWHEEL_BASEDIR / "output"
+    work_dir = FLYWHEEL_BASEDIR / "work"
+
     gear_name = gtk_context.manifest["name"]
-
-    # run-time configuration options from the gear's context.json
-    config = gtk_context.config
-
     dry_run = config.get("gear-dry-run")
 
     # Given the destination container, figure out if running at the project,
@@ -226,6 +233,9 @@ def main(gtk_context):
     #config["mem_mb"] = set_mem_gb(config.get("mem_gb"))
     config['work-dir'] = work_dir
 
+    # # path to a bids_database_dir ? not sure what this is
+    # config['bids_database_dir'] = work_dir / 'bids_db_dir'
+
     environ = get_and_log_environment()
 
     # editme: if the command needs a Freesurfer license keep this
@@ -237,6 +247,8 @@ def main(gtk_context):
         FREESURFER_LICENSE,
     )
 
+    config['fs-license-file'] = str(FREESURFER_LICENSE)
+
     rs_path = gtk_context.get_input_path("recon-spec")
     if rs_path:
         config['recon-spec'] = rs_path
@@ -245,6 +257,12 @@ def main(gtk_context):
     if eddy_path:
         config['eddy-config'] = eddy_path
 
+    ### XXX --freesurfer-input
+    ### XXX deal with core_count and open threads etc.
+    config['freesurfer-input'] = work_dir / 'fs_subjects' / 'CHP-HC-028'
+    if config.get('do_reconall', False):
+        config['do_reconall'] = False
+        log.warn('Setting do_reconall to \'False\' since freesurfer input is supplied')
 
     command = generate_command(
         config, work_dir, output_analysis_id_dir, errors, warnings
@@ -252,6 +270,7 @@ def main(gtk_context):
 
     # This is used as part of the name of output files
     command_name = make_file_name_safe(command[0])
+    log.info(command)
 
     # Download BIDS Formatted data
     if len(errors) == 0:
@@ -394,13 +413,35 @@ def main(gtk_context):
 
 
 if __name__ == "__main__":
+    # always run in a newly created "scratch" directory in /tmp/...
+    scratch_dir = run_in_tmp_dir()
+    config_path = scratch_dir / 'config.json'
 
-    gtk_context = flywheel_gear_toolkit.GearToolkitContext()
+    # reset globals (poor form changing constants)
+    global FREESURFER_LICENSE
+    global FLYWHEEL_BASEDIR
+    FREESURFER_LICENSE = scratch_dir / "work" /"license.txt"
+    FLYWHEEL_BASEDIR = scratch_dir
 
-    # Setup basic logging and log the configuration for this job
-    if gtk_context.config["gear-log-level"] == "INFO":
-        gtk_context.init_logging("info")
-    else:
-        gtk_context.init_logging("debug")
+    try:
+        with flywheel_gear_toolkit.GearToolkitContext(config_path='/flywheel/v0/config.json') as gtk_context:
+            main(gtk_context)
+        return_code = 0
+    except Exception as e:
+        log.error(e)
+        return_code = 1
 
-    sys.exit(main(gtk_context))
+    log.debug('Cleaning up')
+    # clean up (might be necessary when running in a shared computing environment)
+    for thing in scratch_dir.glob("*"):
+        if thing.is_symlink() or thing.is_file():
+            log.debug(f'Unlinking {thing}')
+            thing.unlink()  # don't remove anything links point to
+        elif thing.is_dir():
+            log.debug(f'removing directory {thing}')
+            shutil.rmtree(thing)
+    log.debug(f'removing {scratch_dir}')
+    os.removedirs(scratch_dir)
+    log.debug('Done')
+
+    sys.exit(return_code)
